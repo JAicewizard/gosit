@@ -1,0 +1,4 @@
+github.com/cjdelisle/goposit v0.0.0-20201102115614-f17cef396f0d h1:vSmxAEqFDXl9gqhWiZg0opMu4LEsNzxq8bmmYhESrSE=
+github.com/cjdelisle/goposit v0.0.0-20201102115614-f17cef396f0d/go.mod h1:bAaFY9Gz3fw17Fbgn87gZiwnvO2BzYChpSD+iW7ITDc=
+github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
+github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
