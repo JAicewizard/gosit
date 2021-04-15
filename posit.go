@@ -3,6 +3,7 @@ package posit
 import (
 	"fmt"
 	"math"
+	"math/bits"
 )
 
 type posit struct {
@@ -75,25 +76,20 @@ func AddPositSameES(a, b posit) posit {
 		a.num = uint32(-int32(a.num))
 	}
 
-	an := uint8(1)
+	var an uint8
 	var m int8
 	if a.num&(1<<30) == 0 {
-		for a.num&(1<<(30-an)) == 0 {
-			an++
-		}
+		an = uint8(bits.LeadingZeros32(a.num << 1))
 		m = int8(-an)
 	} else {
-		for a.num&(1<<(30-an)) != 0 {
-			an++
-		}
+		an = uint8(bits.LeadingZeros32(-(a.num << 1)))
 		m = int8(an - 1)
 	}
 	afracBits := (31 - a.es - 1 - an) //we need to bitshift by the remaining bits. this is 31 - 1 - n - es
-	aexp := (uint32(a.num) & (0b00111111111111111111111111111111 >> an)) >> uint32(afracBits)
+	aexp := (a.num & (0b00111111111111111111111111111111 >> an)) >> afracBits
 
 	afrac_2 := (a.num & ((0b00111111111111111111111111111111) >> (an + a.es)))
-	afracP1 := afrac_2 | (0b1 << afracBits)
-	ascale := (1<<int16(a.es))*int32(m) + int32(aexp)
+	ascale := (int32(m) << a.es) + int32(aexp)
 
 	//B
 	bneg := b.num>>31 != 0
@@ -101,55 +97,52 @@ func AddPositSameES(a, b posit) posit {
 		b.num = uint32(-int32(b.num))
 	}
 
-	bn := uint8(1)
+	var bn uint8
 	if b.num&(1<<30) == 0 {
-		for b.num&(1<<(30-bn)) == 0 {
-			bn++
-		}
+		bn = uint8(bits.LeadingZeros32(b.num << 1))
 		m = int8(-bn)
 	} else {
-		for b.num&(1<<(30-bn)) != 0 {
-			bn++
-		}
+		bn = uint8(bits.LeadingZeros32(-(b.num << 1)))
 		m = int8(bn - 1)
 	}
 
 	bfracBits := (31 - b.es - 1 - bn) //we need to bitshift by the remaining bits. this is 31 - 1 - n - es
-	bexp := (uint32(b.num) & (0b00111111111111111111111111111111 >> bn)) >> uint32(bfracBits)
+	bexp := (b.num & (0b00111111111111111111111111111111 >> bn)) >> bfracBits
 
 	bfrac_2 := (b.num & (0b00111111111111111111111111111111 >> (bn + b.es)))
-	bfracP1 := bfrac_2 | (0b1 << bfracBits)
-	bscale := (1<<int16(b.es))*int32(m) + int32(bexp)
+	bscale := (int32(m) << b.es) + int32(bexp)
 
 	//Out
 	var endScale int32
-	afracP1 <<= 31 - afracBits
-	bfracP1 <<= 31 - bfracBits
-
 	if ascale < bscale {
 		endScale = bscale
 	} else {
 		endScale = ascale
 	}
+
 	var af int64
 	var bf int64
 	if endScale-ascale > 31 {
 		af = 0
 	} else {
-		af = int64((uint64(afracP1) << (31 - endScale + ascale)))
+		afrac_2 <<= 31 - afracBits
+		afrac_2 |= 0b1 << 31
+		af = int64((uint64(afrac_2) << (31 - endScale + ascale)))
+		if aneg {
+			af = -af
+		}
 	}
 	if endScale-bscale > 31 {
 		bf = 0
 	} else {
-		bf = int64((uint64(bfracP1) << (31 - endScale + bscale)))
+		bfrac_2 <<= 31 - bfracBits
+		bfrac_2 |= 0b1 << 31
+		bf = int64((uint64(bfrac_2) << (31 - endScale + bscale)))
+		if bneg {
+			bf = -bf
+		}
 	}
 
-	if aneg {
-		af = -af
-	}
-	if bneg {
-		bf = -bf
-	}
 	combinedFrac := uint64(af + bf)
 	neg := int64(af) < -int64(bf)
 	if combinedFrac == 0 {
@@ -161,7 +154,6 @@ func AddPositSameES(a, b posit) posit {
 	if neg {
 		combinedFrac = uint64(-int64(combinedFrac))
 	}
-	overflow := int32((combinedFrac >> (63)) & 1)
 
 	if (aneg || bneg) && (!aneg || !bneg) {
 		for (combinedFrac>>(62))&1 == 0 {
@@ -169,46 +161,51 @@ func AddPositSameES(a, b posit) posit {
 			combinedFrac <<= 1
 		}
 	} else {
-		endScale += overflow
+		overflow := uint8((combinedFrac >> (63)) & 1)
+		endScale += int32(overflow)
 		combinedFrac >>= overflow // leave the hidden bit in
 	}
 
-	endexp, endm := splitExponent(endScale, a.es)
+	endm := endScale >> int32(a.es)
+	endexp := uint32(endScale - (endm << a.es))
 
 	var outPosit uint32
 	var outn uint8
 	if endm < 0 {
-		outPosit |= ((0b1 << 31) >> (1 - endm))
 		outn = uint8(1 - endm)
+		outPosit |= (0b1 << (31 - outn))
 	} else {
-		outPosit = 0x7fffffff
-		outPosit ^= ((0b1 << 31) >> (2 + endm))
 		outn = uint8(2 + endm)
+		outPosit = 0x7fffffff - 0xffffffff>>(outn)
 	}
 	//Recalculate the final fraction bits so that it matches the new exponent and m
 	outFracBits := 31 - a.es - outn
 
-	combinedFrac >>= (30 - outFracBits)
+	// combinedFrac >>= (30 - outFracBits)
+	combinedFrac >>= (a.es + outn - 1)
 
-	toadd := uint8(0)
+	var toadd uint32
+	var outfrac uint32
 	if outn-1 <= 32-a.es {
-		x := ((combinedFrac >> (31)) & 1)
 		y_1 := ((combinedFrac) & 0x7FFF_FFFF) != 0
-		y := uint64(0)
+		var y uint32
 		if y_1 {
 			y = 1
 		}
-		z := (combinedFrac >> (32) & 1)
-		toadd = uint8(x & (y | z))
+		combinedFrac >>= 31
+		x := uint32(combinedFrac) & 1
+		combinedFrac >>= 1
+		toadd = uint32(x & (y | uint32(combinedFrac)&1))
+		outfrac = uint32(combinedFrac)
+		outfrac &= 0xffffffff >> (32 - outFracBits)
+	} else {
+		outfrac = uint32(combinedFrac >> outFracBits)
+		outfrac >>= 32 - outFracBits
 	}
 
-	combinedFrac >>= 32
-	combinedFrac &= 0xffffffff >> (32 - outFracBits)
-
-	outPosit &^= 0xffffffff >> (1 + outn)
 	outPosit |= uint32(endexp) << outFracBits
-	outPosit |= uint32(combinedFrac)
-	outPosit += uint32(toadd)
+	outPosit |= outfrac
+	outPosit += toadd
 	if neg {
 		outPosit = uint32(-int32(outPosit))
 	}
@@ -301,8 +298,8 @@ func MulPositSameES(a, b posit) posit {
 	// combinedFrac looks like:
 	// 1 bit for overflow 1 for hidden bit 62 for number
 
-	overflow := int32((combinedFrac >> (63)) & 1)
-	endScale += overflow
+	overflow := uint8((combinedFrac >> (63)) & 1)
+	endScale += int32(overflow)
 	combinedFrac >>= overflow // leave the hidden bit in
 
 	endexp, endm := splitExponent(endScale, a.es)
@@ -320,27 +317,31 @@ func MulPositSameES(a, b posit) posit {
 	//Recalculate the final fraction bits so that it matches the new exponent and m
 	outFracBits := 31 - a.es - outn
 
-	combinedFrac >>= (30 - outFracBits)
+	// combinedFrac >>= (30 - outFracBits)
+	combinedFrac >>= (a.es + outn - 1)
 
-	toadd := uint8(0)
+	var toadd uint32
 	if outn-1 <= 32-a.es {
-		x := ((combinedFrac >> (31)) & 1)
 		y_1 := ((combinedFrac) & 0x7FFF_FFFF) != 0
 		y := uint64(0)
 		if y_1 {
 			y = 1
 		}
-		z := (combinedFrac >> (32) & 1)
-		toadd = uint8(x & (y | z))
+		combinedFrac >>= 31
+		x := combinedFrac & 1
+		combinedFrac >>= 1
+		z := combinedFrac & 1
+		toadd = uint32(x & (y | z))
+	} else {
+		combinedFrac >>= 32
 	}
 
-	combinedFrac >>= 32
 	combinedFrac &= 0xffffffff >> (32 - outFracBits)
 
 	outPosit &^= 0xffffffff >> (1 + outn)
 	outPosit |= uint32(endexp) << outFracBits
 	outPosit |= uint32(combinedFrac)
-	outPosit += uint32(toadd)
+	outPosit += toadd
 	if neg {
 		outPosit = uint32(-int32(outPosit))
 	}
@@ -456,10 +457,10 @@ func DivPositSameES(a, b posit) posit {
 	}
 	//Recalculate the final fraction bits so that it matches the new exponent and m
 	outFracBits := 31 - a.es - outn
+	// 	combinedFrac >>= (29 - outFracBits)
+	combinedFrac >>= (a.es + outn - 2)
 
-	combinedFrac >>= (29 - outFracBits)
-
-	toadd := uint8(0)
+	var toadd uint32
 	if outn-1 <= 32-a.es {
 		x := combinedFrac & 1
 		y_1 := ((combinedFrac) & 0x7FFF_FFFF) != 0
@@ -473,8 +474,7 @@ func DivPositSameES(a, b posit) posit {
 		if a_1 {
 			a = 1
 		}
-		// fmt.Println(x, y, z, a)
-		toadd = uint8(x & (y | z | a))
+		toadd = uint32(x & (y | z | a))
 	}
 	combinedFrac >>= 1
 	combinedFrac &= 0xffffffff >> (32 - outFracBits)
@@ -482,7 +482,7 @@ func DivPositSameES(a, b posit) posit {
 	outPosit &^= 0xffffffff >> (1 + outn)
 	outPosit |= uint32(endexp) << outFracBits
 	outPosit |= uint32(combinedFrac)
-	outPosit += uint32(toadd)
+	outPosit += toadd
 	if neg {
 		outPosit = uint32(-int32(outPosit))
 	}
