@@ -51,6 +51,10 @@ func Getfloat(posit posit) float64 {
 		return -(regime * float64(int32(1)<<exp) * frac)
 	}
 }
+func Negate(p posit) posit {
+	p.num = uint32(-int32(p.num))
+	return p
+}
 
 func AddPositSameES(a, b posit) posit {
 	if a.es != b.es {

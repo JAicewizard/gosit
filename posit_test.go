@@ -557,6 +557,7 @@ func TestMulFuz(t *testing.T) {
 		}
 	}
 }
+
 func TestDivFuz(t *testing.T) {
 	data := make([]byte, 1000000)
 	var a uint32
