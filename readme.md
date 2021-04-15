@@ -15,9 +15,26 @@ Currently only es=2 is fuzzed as states in the [Testing](#Testing) section.
 ```go
 p := gosit.Newposit32FromBits(0b0_001_10_11_10000011_01111110_10010111)
 q := gosit.Newposit32FromBits(0b0_000001_11_0000001_00000111_10100011)
-fmt.Println(gosit.Getfloat(p), "*", gosit.Getfloat(q),"=", gosit.Getfloat(gosit.MulPositSameES(p,q)))
+fmt.Println(gosit.Getfloat(p), "*", gosit.Getfloat(q), "=", gosit.Getfloat(gosit.MulPositSameES(p,q)))
 ```
 
+## Benchmarks
+
+Currently I only benchmark against the slow goposit, since its the only other go library for posits.
+### Goposit
+
+All tests are ran with the exect same bench cases to eliminate favouring one library over another because of coincidence.
+These are rotated out every iteration. No other code is ran besides getting the case from an array, and running the corresponding function on it.
+
+```
+go test --run=X --bench=. -benchtime 30s
+BenchmarkAddSlow-12             1000000000              26.25 ns/op
+BenchmarkAddSlowGoposit-12       9456596              3497 ns/op
+BenchmarkMulSlow-12             1000000000              23.60 ns/op
+BenchmarkMulSlowGoposit-12       9793280              3746 ns/op
+BenchmarkDivSlow-12             1000000000              28.33 ns/op
+BenchmarkDivSlowGoposit-12       9090956              3491 ns/op
+```
 
 [positWiki]:https://en.wikipedia.org/wiki/Unum_(number_format)#Unum_III 
 [positPaper]:http://www.johngustafson.net/pdfs/BeatingFloatingPoint.pdf 

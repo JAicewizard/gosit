@@ -472,7 +472,7 @@ func TestAddFuz(t *testing.T) {
 	data := make([]byte, 1000000)
 	var a uint32
 	var b uint32
-	for i := 0; i < 10000; i++ {
+	for i := 0; true; i++ {
 		rand.Read(data)
 		fuzz.NewFromGoFuzz(data).Fuzz(&a)
 		rand.Read(data)
@@ -517,7 +517,7 @@ func TestMulFuz(t *testing.T) {
 	data := make([]byte, 1000000)
 	var a uint32
 	var b uint32
-	for i := 0; i < 10000; i++ {
+	for i := 0; true; i++ {
 		rand.Read(data)
 		fuzz.NewFromGoFuzz(data).Fuzz(&a)
 		rand.Read(data)
@@ -562,7 +562,7 @@ func TestDivFuz(t *testing.T) {
 	data := make([]byte, 1000000)
 	var a uint32
 	var b uint32
-	for i := 0; i < 10000; i++ {
+	for i := 0; true; i++ {
 		rand.Read(data)
 		fuzz.NewFromGoFuzz(data).Fuzz(&a)
 		rand.Read(data)
@@ -595,5 +595,166 @@ func TestDivFuz(t *testing.T) {
 		if res != exp {
 			t.Fatal("got the wrong number:", Getfloat(res), "expected:", Getfloat(exp))
 		}
+	}
+}
+
+type opBenchCase struct {
+	a  posit
+	b  posit
+	ag goposit.Posit32
+	bg goposit.Posit32
+}
+
+var slowBenchcases = [...]opBenchCase{
+	{
+		a: posit{
+			num: 0b0_00001_10_11011101_00000000_00000000,
+			es:  2,
+		},
+		b: posit{
+			num: 0b0_00001_10_11011101_00000000_00000000,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b0_00001_10_11011101_00000000_00000000),
+		bg: goposit.NewPosit32().SetBits(0b0_00001_10_11011101_00000000_00000000),
+	},
+	{
+		a: posit{
+			num: 0b0_00001_10_11011101_00000000_00000000,
+			es:  2,
+		},
+		b: posit{
+			num: 0b0_00001_10_11111101_00000000_00000000,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b0_00001_10_11011101_00000000_00000000),
+		bg: goposit.NewPosit32().SetBits(0b0_00001_10_11111101_00000000_00000000),
+	},
+	{
+		a: posit{
+			num: 0b1_11110_10_00100000_00000000_00000000,
+			es:  2,
+		},
+		b: posit{
+			num: 0b0_00001_10_11111101_00000000_00000000,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b1_11110_10_00100000_00000000_00000000),
+		bg: goposit.NewPosit32().SetBits(0b0_00001_10_11111101_00000000_00000000),
+	},
+	{
+		a: posit{
+			num: 0b01000101100011011010110001101011,
+			es:  2,
+		},
+		b: posit{
+			num: 0b10000100111000010000001001010100,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b01000101100011011010110001101011),
+		bg: goposit.NewPosit32().SetBits(0b10000100111000010000001001010100),
+	},
+	{
+		a: posit{
+			num: 0b11001010100000010111011101000100,
+			es:  2,
+		},
+		b: posit{
+			num: 0b11100010010101101111000001110010,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b11001010100000010111011101000100),
+		bg: goposit.NewPosit32().SetBits(0b11100010010101101111000001110010),
+	},
+	{
+		a: posit{
+			num: 0b10110001010101010011110101100011,
+			es:  2,
+		},
+		b: posit{
+			num: 0b01000000010010000100010011001001,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b10110001010101010011110101100011),
+		bg: goposit.NewPosit32().SetBits(0b01000000010010000100010011001001),
+	},
+	{
+		a: posit{
+			num: 0b00001010100110011011111111110101,
+			es:  2,
+		},
+		b: posit{
+			num: 0b10011000110111111000101011101110,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b00001010100110011011111111110101),
+		bg: goposit.NewPosit32().SetBits(0b10011000110111111000101011101110),
+	},
+	{
+		a: posit{
+			num: 0b01011111100111100110110010101001,
+			es:  2,
+		},
+		b: posit{
+			num: 0b01010101011001000101111011111011,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b01011111100111100110110010101001),
+		bg: goposit.NewPosit32().SetBits(0b01010101011001000101111011111011),
+	},
+	{
+		a: posit{
+			num: 0b11001110011111001011111010111100,
+			es:  2,
+		},
+		b: posit{
+			num: 0b01110110011100110110110110010110,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b11001110011111001011111010111100),
+		bg: goposit.NewPosit32().SetBits(0b01110110011100110110110110010110),
+	},
+	{
+		a: posit{
+			num: 0b01111111111101010001101111000111,
+			es:  2,
+		},
+		b: posit{
+			num: 0b01100001110010010010111000000100,
+			es:  2,
+		},
+		ag: goposit.NewPosit32().SetBits(0b01111111111101010001101111000111),
+		bg: goposit.NewPosit32().SetBits(0b01100001110010010010111000000100),
+	},
+}
+
+func BenchmarkAddSlow(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		AddPositSameES(slowBenchcases[n%len(slowBenchcases)].a, slowBenchcases[n%len(slowBenchcases)].b)
+	}
+}
+func BenchmarkAddSlowGoposit(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		slowBenchcases[n%len(slowBenchcases)].ag.Add(slowBenchcases[n%len(slowBenchcases)].bg)
+	}
+}
+func BenchmarkMulSlow(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		MulPositSameES(slowBenchcases[n%len(slowBenchcases)].a, slowBenchcases[n%len(slowBenchcases)].b)
+	}
+}
+func BenchmarkMulSlowGoposit(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		slowBenchcases[n%len(slowBenchcases)].ag.Mul(slowBenchcases[n%len(slowBenchcases)].bg)
+	}
+}
+func BenchmarkDivSlow(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		DivPositSameES(slowBenchcases[n%len(slowBenchcases)].a, slowBenchcases[n%len(slowBenchcases)].b)
+	}
+}
+func BenchmarkDivSlowGoposit(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		slowBenchcases[n%len(slowBenchcases)].ag.Div(slowBenchcases[n%len(slowBenchcases)].bg)
 	}
 }
