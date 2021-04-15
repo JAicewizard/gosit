@@ -41,14 +41,9 @@ func Getfloat(posit posit) float64 {
 	fmt.Println(regime, eseed, m)
 	fracBits := (31 - posit.es - 1 - uint8(n)) //we need to bitshift by the remaining bits. this is 31 - 1 - n - es
 	exp := (uint32(posit.num) & (0b00111111111111111111111111111111 >> n)) >> fracBits
-	//exp := (uint32(posit.num) << (n + 1 + 1)) >> (n + 1 + 1 + int8(posit.es)) // +1 for the bar r and +1 for the first sign.
 	frac_2 := (posit.num & ((0b00111111111111111111111111111111) >> (n + int8(posit.es))))
-	fmt.Printf("%#032b\n", frac_2)
 
 	frac := 1 + float64(frac_2)/float64(uint32(0b1<<(fracBits))-1)
-	fmt.Printf("%f*%f*%f\n", regime, float64(int32(1)<<exp), float64(frac))
-	fmt.Printf("%d:%d/%d\n", 1<<fracBits, frac_2, uint32(0b1<<(fracBits))-1)
-	fmt.Printf("%d:%d/%d\n", m, exp, fracBits)
 
 	if !neg {
 		return regime * math.Pow(2.0, float64(exp)) * frac
@@ -60,6 +55,15 @@ func Getfloat(posit posit) float64 {
 func AddPositSameES(a, b posit) posit {
 	if a.es != b.es {
 		panic("es must be the same for AddPositFast")
+	}
+	if a.num == 0 {
+		return b
+	}
+	if b.num == 0 {
+		return a
+	}
+	if a.num == 1<<31 || b.num == 1<<31 {
+		return Newposit32FromBits(1<<31, a.es)
 	}
 	//A
 	aneg := a.num>>31 != 0
@@ -219,6 +223,12 @@ func MulPositSameES(a, b posit) posit {
 	if a.es != b.es {
 		panic("es must be the same for AddPositFast")
 	}
+	if a.num == 0 || b.num == 0 {
+		return Newposit32FromBits(0, a.es)
+	}
+	if a.num == 1<<31 || b.num == 1<<31 {
+		return Newposit32FromBits(1<<31, a.es)
+	}
 	//A
 	aneg := a.num>>31 != 0
 	if aneg {
@@ -335,10 +345,21 @@ func MulPositSameES(a, b posit) posit {
 		es:  a.es,
 	}
 }
+
 func DivPositSameES(a, b posit) posit {
 	if a.es != b.es {
 		panic("es must be the same for AddPositFast")
 	}
+	if a.num == 0 {
+		return Newposit32FromBits(0, a.es)
+	}
+	if b.num == 0 {
+		return Newposit32FromBits(1<<31, a.es)
+	}
+	if b.num == 1<<31 {
+		return Newposit32FromBits(0, a.es)
+	}
+
 	//A
 	aneg := a.num>>31 != 0
 	if aneg {
