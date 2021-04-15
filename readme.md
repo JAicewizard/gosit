@@ -25,6 +25,7 @@ Currently I only benchmark against the slow goposit, since its the only other go
 
 All tests are ran with the exect same bench cases to eliminate favouring one library over another because of coincidence.
 These are rotated out every iteration. No other code is ran besides getting the case from an array, and running the corresponding function on it.
+All benches ware using ES=2
 
 ```
 go test --run=X --bench=. -benchtime 30s
@@ -35,6 +36,15 @@ BenchmarkMulSlowGoposit-12       9793280              3746 ns/op
 BenchmarkDivSlow-12             1000000000              28.33 ns/op
 BenchmarkDivSlowGoposit-12       9090956              3491 ns/op
 ```
+### softposit-rs
+
+No direct comparisons exist, but taking some averages from cargo bench on my machine:
+| Operation | ns/op on my machine | 
+|:---------:|:-------------------:|
+|    Add    | 7.5ns/op            | 
+|    -      | 6.9ns/op            |
+|    *      | 6.3ns/op            |
+|    /      | 9.8ns/op            |
 
 [positWiki]:https://en.wikipedia.org/wiki/Unum_(number_format)#Unum_III 
 [positPaper]:http://www.johngustafson.net/pdfs/BeatingFloatingPoint.pdf 
