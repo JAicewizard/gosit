@@ -29,12 +29,12 @@ All benches ware using ES=2
 
 ```
 go test --run=X --bench=. -benchtime 30s
-BenchmarkAddSlow-10             1000000000              24.33 ns/op
-BenchmarkAddSlowGoposit-10       9959919              3691 ns/op
-BenchmarkMulSlow-10             1000000000              24.30 ns/op
-BenchmarkMulSlowGoposit-10       9517118              3746 ns/op
-BenchmarkDivSlow-10             1000000000              28.83 ns/op
-BenchmarkDivSlowGoposit-10       9478204              3688 ns/op
+BenchmarkAddSlow-10             1000000000              20.86 ns/op
+BenchmarkAddSlowGoposit-10       9086824              3980 ns/op
+BenchmarkMulSlow-10             1000000000              23.90 ns/op
+BenchmarkMulSlowGoposit-10       8732944              3980 ns/op
+BenchmarkDivSlow-10             1000000000              28.64 ns/op
+BenchmarkDivSlowGoposit-10       9213330              4021 ns/op
 ```
 ### softposit-rs
 

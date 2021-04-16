@@ -246,7 +246,6 @@ func TestAdd(t *testing.T) {
 			}
 		})
 	}
-	// t.Fail()
 }
 
 var subtests = map[string]opTest{
