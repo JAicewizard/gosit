@@ -29,13 +29,12 @@ All benches ware using ES=2
 
 ```
 go test --run=X --bench=. -benchtime 30s
-BenchmarkAddSlow-10             1000000000              18.38 ns/op
-BenchmarkAddSlowGoposit-10       9728995              3931 ns/op
-BenchmarkMulSlow-10             1000000000              17.22 ns/op
-BenchmarkMulSlowGoposit-10       8964672              4020 ns/op
-BenchmarkDivSlow-10             1000000000              21.95 ns/op
-BenchmarkDivSlowGoposit-10       9895725              4055 ns/op
-```
+BenchmarkAddSlow-12             1000000000              18.08 ns/op
+BenchmarkAddSlowGoposit-12       8760410              4189 ns/op
+BenchmarkMulSlow-12             1000000000              17.13 ns/op
+BenchmarkMulSlowGoposit-12       8663428              4225 ns/op
+BenchmarkDivSlow-12             1000000000              21.11 ns/op
+BenchmarkDivSlowGoposit-12       8358858              4362 ns/op```
 ### softposit-rs
 
 No direct comparisons exist, but taking some averages from cargo bench on my machine:

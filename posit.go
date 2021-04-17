@@ -394,7 +394,8 @@ func DivPositSameES(a, b posit) posit {
 		combinedFrac <<= 1 // remove the hidden bit
 	}
 
-	endexp, endm := splitExponent(ascale, a.es)
+	endm := ascale >> a.es
+	endexp := uint32(ascale - (endm << a.es))
 
 	var outPosit uint32
 	var outn uint8
@@ -442,17 +443,4 @@ func DivPositSameES(a, b posit) posit {
 		num: outPosit,
 		es:  a.es,
 	}
-}
-
-func splitExponent(scale int32, es uint8) (endexp uint32, endm int32) {
-	endexp1 := (scale % (1 << int16(es)))
-	endm = scale / (1 << int16(es))
-
-	if endexp1 < 0 {
-		endexp = uint32(endexp1 + (1 << int16(es)))
-		endm--
-	} else {
-		endexp = uint32(endexp1)
-	}
-	return
 }
