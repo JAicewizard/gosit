@@ -26,24 +26,20 @@ func Getfloat(posit posit) float64 {
 		posit.num = uint32(-int32(posit.num))
 	}
 	eseed := 1 << (1 << uint16(posit.es))
-	var n int8
+	var n uint8
 	var m int8
 	n = 1
 	if posit.num&(1<<30) == 0 {
-		for posit.num&(1<<(30-n)) == 0 {
-			n++
-		}
-		m = -n
+		n = uint8(bits.LeadingZeros32(posit.num << 1))
+		m = -int8(n)
 	} else {
-		for posit.num&(1<<(30-n)) != 0 {
-			n++
-		}
-		m = n - 1
+		n = uint8(bits.LeadingZeros32(0xffffffff ^ (posit.num << 1)))
+		m = int8(n - 1)
 	}
 	regime := math.Pow(float64(eseed), float64(m))
 	fracBits := (31 - posit.es - 1 - uint8(n)) //we need to bitshift by the remaining bits. this is 31 - 1 - n - es
 	exp := (uint32(posit.num) & (0b00111111111111111111111111111111 >> n)) >> fracBits
-	frac_2 := (posit.num & ((0b00111111111111111111111111111111) >> (n + int8(posit.es))))
+	frac_2 := (posit.num & ((0b00111111111111111111111111111111) >> (n + posit.es)))
 
 	frac := 1 + float64(frac_2)/float64(uint32(0b1<<(fracBits))-1)
 
@@ -98,13 +94,13 @@ func AddPositSameES(a, b posit) posit {
 		an = uint8(bits.LeadingZeros32(a.num << 1))
 		m = int8(-an)
 	} else {
-		an = uint8(bits.LeadingZeros32(-(a.num << 1)))
+		an = uint8(bits.LeadingZeros32(0xffffffff ^ (a.num << 1)))
 		m = int8(an - 1)
 	}
 	an++
 	aexp := (a.num << ((an + 1) & 0x1f)) >> ((32 - a.es) & 0x1f)
 	afrac_2 := (a.num << ((a.es + an) & 0x1f)) | (0b1 << 31)
-	ascale := (int32(m) << (b.es & 0x1f)) + int32(aexp)
+	ascale := (int32(m) << (a.es & 0x1f)) + int32(aexp)
 
 	//B
 	var bn uint8
@@ -112,7 +108,7 @@ func AddPositSameES(a, b posit) posit {
 		bn = uint8(bits.LeadingZeros32(b.num << 1))
 		m = int8(-bn)
 	} else {
-		bn = uint8(bits.LeadingZeros32(-(b.num << 1)))
+		bn = uint8(bits.LeadingZeros32(0xffffffff ^ (b.num << 1)))
 		m = int8(bn - 1)
 	}
 	bn++
@@ -160,10 +156,10 @@ func AddPositSameES(a, b posit) posit {
 	var outn uint8
 	if endm < 0 {
 		outn = uint8(1 - endm)
-		outPosit = (0b1 << 31) >> (outn & 0x0f)
+		outPosit = (0b1 << 31) >> (outn & 0x1f)
 	} else {
 		outn = uint8(2 + endm)
-		outPosit = 0x7fffffff - 0xffffffff>>(outn&0x0f)
+		outPosit = 0x7fffffff - 0xffffffff>>(outn&0x1f)
 	}
 	//Recalculate the final fraction bits so that it matches the new exponent and m
 	outFracBits := 31 - a.es - outn
@@ -228,13 +224,13 @@ func MulPositSameES(a, b posit) posit {
 		an = uint8(bits.LeadingZeros32(a.num << 1))
 		m = int8(-an)
 	} else {
-		an = uint8(bits.LeadingZeros32(-(a.num << 1)))
+		an = uint8(bits.LeadingZeros32(0xffffffff ^ (a.num << 1)))
 		m = int8(an - 1)
 	}
 	an++
 	aexp := (a.num << ((an + 1) & 0x1f)) >> ((32 - a.es) & 0x1f)
 	afracP1 := (a.num << ((a.es + an) & 0x1f)) | (0b1 << 31)
-	ascale := (int32(m) << (b.es & 0x1f)) + int32(aexp)
+	ascale := (int32(m) << (a.es & 0x1f)) + int32(aexp)
 
 	//B
 	xneg := aneg
@@ -249,7 +245,7 @@ func MulPositSameES(a, b posit) posit {
 		bn = uint8(bits.LeadingZeros32(b.num << 1))
 		m = int8(-bn)
 	} else {
-		bn = uint8(bits.LeadingZeros32(-(b.num << 1)))
+		bn = uint8(bits.LeadingZeros32(0xffffffff ^ (b.num << 1)))
 		m = int8(bn - 1)
 	}
 	bn++
@@ -277,10 +273,10 @@ func MulPositSameES(a, b posit) posit {
 	var outn uint8
 	if endm < 0 {
 		outn = uint8(1 - endm)
-		outPosit = (0b1 << 31) >> (outn & 0x0f)
+		outPosit = (0b1 << 31) >> (outn & 0x1f)
 	} else {
 		outn = uint8(2 + endm)
-		outPosit = 0x7fffffff - 0xffffffff>>(outn&0x0f)
+		outPosit = 0x7fffffff - 0xffffffff>>(outn&0x1f)
 	}
 	//Recalculate the final fraction bits so that it matches the new exponent and m
 	outFracBits := 31 - a.es - outn
@@ -340,13 +336,13 @@ func DivPositSameES(a, b posit) posit {
 		an = uint8(bits.LeadingZeros32(a.num << 1))
 		m = int8(-an)
 	} else {
-		an = uint8(bits.LeadingZeros32(-(a.num << 1)))
+		an = uint8(bits.LeadingZeros32(0xffffffff ^ (a.num << 1)))
 		m = int8(an - 1)
 	}
 	an++
 	aexp := (a.num << ((an + 1) & 0x1f)) >> ((32 - a.es) & 0x1f)
 	afracP1 := (a.num << ((a.es + an) & 0x1f)) | (0b1 << 31)
-	ascale := (int32(m) << (b.es & 0x1f)) + int32(aexp)
+	ascale := (int32(m) << (a.es & 0x1f)) + int32(aexp)
 
 	//B
 	bneg := b.num>>31 != 0
@@ -401,10 +397,10 @@ func DivPositSameES(a, b posit) posit {
 	var outn uint8
 	if endm < 0 {
 		outn = uint8(1 - endm)
-		outPosit = (0b1 << 31) >> (outn & 0x0f)
+		outPosit = (0b1 << 31) >> (outn & 0x1f)
 	} else {
 		outn = uint8(2 + endm)
-		outPosit = 0x7fffffff - 0xffffffff>>(outn&0x0f)
+		outPosit = 0x7fffffff - 0xffffffff>>(outn&0x1f)
 	}
 	//Recalculate the final fraction bits so that it matches the new exponent and m
 	outFracBits := 31 - a.es - outn
@@ -428,7 +424,7 @@ func DivPositSameES(a, b posit) posit {
 		toadd = uint32(x & (y | z | c))
 	}
 
-	g := uint8((1 + a.es + outn) & 0x1f)
+	g := uint8((1 + a.es + outn) & 0x3f)
 	outfrac = uint32(combinedFrac>>1) << g
 	outfrac >>= g
 
@@ -439,6 +435,87 @@ func DivPositSameES(a, b posit) posit {
 	if neg {
 		outPosit = uint32(-int32(outPosit))
 	}
+	return posit{
+		num: outPosit,
+		es:  a.es,
+	}
+}
+
+//https://stackoverflow.com/a/31120562
+func SqrtPosit(a posit) posit {
+	if a.num == 1<<31 || a.num == 0 || a.num>>31 != 0 {
+		return Newposit32FromBits(1<<31, a.es)
+	}
+
+	//A
+
+	an := uint8(1)
+	var reg int8
+	if a.num&(1<<30) == 0 {
+		an = uint8(bits.LeadingZeros32(a.num << 1))
+		reg = int8(-an)
+	} else {
+		an = uint8(bits.LeadingZeros32(0xffffffff ^ (a.num << 1)))
+		reg = int8(an - 1)
+	}
+	an++
+	aexp := (a.num << ((an + 1) & 0x1f)) >> ((32 - a.es) & 0x1f)
+	afracP1 := (a.num << ((a.es + an) & 0x1f)) | (0b1 << 31)
+
+	//calc
+	n := uint64(afracP1) << ((31 + aexp&1) & 0x3f)
+	var combinedFrac uint64
+	//There are some tricky performance characteristics of modifying this code
+	//Allignment changes the benchmark for this loop a lot (jumping to aligned addeesses ...)
+	//Dont be allarmed if suddenly this code performs worse with a small change
+	one := uint64(1 << 62)
+	for i := 0; i < 32 && n != 0; i++ {
+		a1 := combinedFrac + one
+		if n >= a1 {
+			n -= a1
+			combinedFrac += one << 1
+		}
+		combinedFrac >>= 1
+		one >>= 2
+	}
+	if reg&1 != 0 {
+		aexp += 4
+	}
+	reg >>= 1
+	aexp >>= 1
+
+	//out
+	var outPosit uint32
+	var outn uint8
+	if reg < 0 {
+		outn = uint8(1 - reg)
+		outPosit = (0b1 << 31) >> (outn & 0x1f)
+	} else {
+		outn = uint8(2 + reg)
+		outPosit = 0x7fffffff - 0xffffffff>>(outn&0x1f)
+	}
+	//Recalculate the final fraction bits so that it matches the new exponent and m
+	outFracBits := 31 - a.es - outn
+
+	// combinedFrac >>= (30 - outFracBits)
+	combinedFrac >>= (a.es + outn - 1)
+
+	var toadd uint32
+	var outfrac uint32
+	if outn-1 <= 32-a.es {
+		outfrac = uint32(combinedFrac)
+		toadd = outfrac & 1
+		outfrac &= 0x7fffffff >> (a.es + outn)
+	} else {
+		outfrac = uint32(combinedFrac << (a.es + outn))
+		outfrac >>= 1 + a.es + outn
+	}
+	outfrac = uint32(combinedFrac << (a.es + outn))
+	outfrac >>= 1 + a.es + outn
+
+	outPosit |= uint32(aexp) << outFracBits
+	outPosit |= outfrac
+	outPosit += toadd
 	return posit{
 		num: outPosit,
 		es:  a.es,

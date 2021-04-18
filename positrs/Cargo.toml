@@ -1,0 +1,11 @@
+[package]
+name = "positrs"
+version = "0.1.0"
+authors = ["jaap aarts <jaap.aarts1@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+softposit = { git = "https://gitlab.com/burrbull/softposit-rs", rev = "a6f304e94fd2b19e86ea892b170f723e862d7368" }

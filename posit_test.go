@@ -1,14 +1,12 @@
 package posit
 
 import (
-	"crypto/rand"
 	"fmt"
 	"math"
 	"math/big"
 	"testing"
 
 	"github.com/cjdelisle/goposit"
-	fuzz "github.com/google/gofuzz"
 )
 
 func TestGetFloat(t *testing.T) {
@@ -228,6 +226,20 @@ var addtests = map[string]opTest{
 			es:  2,
 		},
 	},
+	"13:restrictiveMask-0": {
+		a: posit{
+			num: 0b10000000000000000110111001011100,
+			es:  2,
+		},
+		b: posit{
+			num: 0b11111111111100101111000101010110,
+			es:  2,
+		},
+		exp: posit{
+			num: 0b10000000000000000110111001011100,
+			es:  2,
+		},
+	},
 }
 
 func TestAdd(t *testing.T) {
@@ -246,7 +258,6 @@ func TestAdd(t *testing.T) {
 			}
 		})
 	}
-	// t.Fail()
 }
 
 var subtests = map[string]opTest{
@@ -363,6 +374,20 @@ var multests = map[string]opTest{
 			es:  2,
 		},
 	},
+	"5": {
+		a: posit{
+			num: 0b00111000000000000000000000000000,
+			es:  2,
+		},
+		b: posit{
+			num: 0b01000000000000000000000000000000,
+			es:  2,
+		},
+		exp: posit{
+			num: 0b00111000000000000000000000000000,
+			es:  2,
+		},
+	},
 }
 
 func TestMul(t *testing.T) {
@@ -454,6 +479,20 @@ var divtests = map[string]opTest{
 			es:  2,
 		},
 	},
+	"4:0sizedfrac": {
+		a: posit{
+			num: 0b00000000000000000000000001010011,
+			es:  2,
+		},
+		b: posit{
+			num: 0b01111010110110111000010110011101,
+			es:  2,
+		},
+		exp: posit{
+			num: 0b00000000000000000000000000000110,
+			es:  2,
+		},
+	},
 }
 
 func TestDiv(t *testing.T) {
@@ -469,133 +508,63 @@ func TestDiv(t *testing.T) {
 	}
 }
 
-func TestAddFuz(t *testing.T) {
-	data := make([]byte, 1000000)
-	var a uint32
-	var b uint32
-	for i := 0; true; i++ {
-		rand.Read(data)
-		fuzz.NewFromGoFuzz(data).Fuzz(&a)
-		rand.Read(data)
-		fuzz.NewFromGoFuzz(data).Fuzz(&b)
-		if i%100 == 0 {
-			fmt.Printf("%d\n", i)
-		}
-		ga := goposit.NewSlowPosit(32, 2)
-		ga.SetBits(big.NewInt(int64(a)))
-		gb := goposit.NewSlowPosit(32, 2)
-		gb.SetBits(big.NewInt(int64(b)))
-
-		exp := posit{
-			num: uint32(ga.Add(gb).Bits.Uint64()),
+var sqrttests = map[string]opTest{
+	"1": {
+		a: posit{
+			num: 0b01001000000000000000000000000000,
 			es:  2,
-		}
-		pa := posit{
-			num: a,
+		},
+		b: posit{},
+		exp: posit{
+			num: 0b01000011010100000100111100110011,
 			es:  2,
-		}
-		pb := posit{
-			num: b,
+		},
+	},
+	"2": {
+		a: posit{
+			num: 0b01010000000000000000000000000000,
 			es:  2,
-		}
-		t.Logf("a:%#032b", a)
-		t.Logf("b:%#032b", b)
-		t.Logf("exp:%#032b", exp.num)
-		res := AddPositSameES(pa, pb)
-		t.Logf("got:%#032b", res.num)
-		if res != exp {
-			t.Fatal("got the wrong number:", Getfloat(res), "expected:", Getfloat(exp))
-		}
-		res = AddPositSameES(pb, pa)
-		t.Logf("got:%#032b", res.num)
-		if res != exp {
-			t.Fatal("got the wrong float:", Getfloat(res), "expected:", Getfloat(exp))
-		}
-	}
+		},
+		b: posit{},
+		exp: posit{
+			num: 0b01001000000000000000000000000000,
+			es:  2,
+		},
+	},
+	"3:add-0": {
+		a: posit{
+			num: 0b01110110100100110101001011011101,
+			es:  2,
+		},
+		b: posit{},
+		exp: posit{
+			num: 0b01100110011010110101100011011110,
+			es:  2,
+		},
+	},
+	"4:negative": {
+		a: posit{
+			num: 0b11001011100010001011101001110010,
+			es:  2,
+		},
+		b: posit{},
+		exp: posit{
+			num: 0b10000000000000000000000000000000,
+			es:  2,
+		},
+	},
 }
 
-func TestMulFuz(t *testing.T) {
-	data := make([]byte, 1000000)
-	var a uint32
-	var b uint32
-	for i := 0; true; i++ {
-		rand.Read(data)
-		fuzz.NewFromGoFuzz(data).Fuzz(&a)
-		rand.Read(data)
-		fuzz.NewFromGoFuzz(data).Fuzz(&b)
-		if i%100 == 0 {
-			fmt.Printf("%d\n", i)
-		}
-		ga := goposit.NewSlowPosit(32, 2)
-		ga.SetBits(big.NewInt(int64(a)))
-		gb := goposit.NewSlowPosit(32, 2)
-		gb.SetBits(big.NewInt(int64(b)))
-
-		exp := posit{
-			num: uint32(ga.Mul(gb).Bits.Uint64()),
-			es:  2,
-		}
-		pa := posit{
-			num: a,
-			es:  2,
-		}
-		pb := posit{
-			num: b,
-			es:  2,
-		}
-		t.Logf("a:%#032b", a)
-		t.Logf("b:%#032b", b)
-		t.Logf("exp:%#032b", exp.num)
-		res := MulPositSameES(pa, pb)
-		t.Logf("got:%#032b", res.num)
-		if res != exp {
-			t.Fatal("got the wrong number:", Getfloat(res), "expected:", Getfloat(exp))
-		}
-		res = MulPositSameES(pb, pa)
-		t.Logf("got:%#032b", res.num)
-		if res != exp {
-			t.Fatal("got the wrong float:", Getfloat(res), "expected:", Getfloat(exp))
-		}
-	}
-}
-
-func TestDivFuz(t *testing.T) {
-	data := make([]byte, 1000000)
-	var a uint32
-	var b uint32
-	for i := 0; true; i++ {
-		rand.Read(data)
-		fuzz.NewFromGoFuzz(data).Fuzz(&a)
-		rand.Read(data)
-		fuzz.NewFromGoFuzz(data).Fuzz(&b)
-		if i%100 == 0 {
-			fmt.Printf("%d\n", i)
-		}
-		ga := goposit.NewSlowPosit(32, 2)
-		ga.SetBits(big.NewInt(int64(a)))
-		gb := goposit.NewSlowPosit(32, 2)
-		gb.SetBits(big.NewInt(int64(b)))
-
-		exp := posit{
-			num: uint32(ga.Div(gb).Bits.Uint64()),
-			es:  2,
-		}
-		pa := posit{
-			num: a,
-			es:  2,
-		}
-		pb := posit{
-			num: b,
-			es:  2,
-		}
-		t.Logf("a:%#032b", a)
-		t.Logf("b:%#032b", b)
-		t.Logf("exp:%#032b", exp.num)
-		res := DivPositSameES(pa, pb)
-		t.Logf("got:%#032b", res.num)
-		if res != exp {
-			t.Fatal("got the wrong number:", Getfloat(res), "expected:", Getfloat(exp))
-		}
+func TestSqrt(t *testing.T) {
+	for name, test := range sqrttests {
+		t.Run(name, func(t *testing.T) {
+			res := SqrtPosit(test.a)
+			t.Logf("exp:%#032b", test.exp.num)
+			t.Logf("res:%#032b", res.num)
+			if res != test.exp {
+				t.Fatal("got the wrong number:", Getfloat(res), "expected:", Getfloat(test.exp))
+			}
+		})
 	}
 }
 
@@ -757,5 +726,14 @@ func BenchmarkDivSlow(b *testing.B) {
 func BenchmarkDivSlowGoposit(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		slowBenchcases[n%len(slowBenchcases)].ag.Div(slowBenchcases[n%len(slowBenchcases)].bg)
+	}
+}
+func BenchmarkSqrtSlow(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		a := slowBenchcases[n%len(slowBenchcases)].a
+		if a.num&(1<<31) != 0 {
+			a.num = uint32(-int32(a.num))
+		}
+		SqrtPosit(a)
 	}
 }
