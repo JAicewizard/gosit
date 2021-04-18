@@ -3,6 +3,9 @@ Gosit is a posit library for go. There is currently one other go implementation 
 
 Posits are a representation of real numbers that tries to compete with floating point numbers. See [the wikipedia page][positWiki] and [the paper][positPaper] if you want to learn more about posits.
 
+This library has been moved to https://gitlab.com/amfiremage/gosit.
+This repository will remain as it is now, with most of the most essential operations working.
+
 ## Testing
 Gosit is fuzzed against goposit, the fuzzing finds a case where the bits returned form this library are diferent from goposit, it fails. As of the initial commit all functions have been fuzzed at least 1 hout, or around 26000 cases. This is not a lot and there might be some edge cases it hasnt found yet, but it gives a good indication that in general this library does the right thing. Only ES=2 has been fuzzed, mostly because this is the ES used in softposit for julia and rust, allowing me to easily verify and debug with a maintained version of softposit. Other values will be tested later on.
 
